@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "rs-distributions"
 dynamic = ["version"]
-description = ''
+description = 'Statistical distributions for structural biology'
 readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT"
@@ -24,7 +24,9 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = []
+dependencies = [
+    "torch",
+]
 
 [project.urls]
 Documentation = "https://github.com/rs-station/distributions#readme"
