@@ -3,18 +3,20 @@ import torch
 from torch import distributions as dist
 
 
-
 class NormalIRSample(torch.autograd.Function):
     @staticmethod
     def forward(ctx, loc, scale, samples, dFdmu, dFdsig, q):
-        dzdmu = -dFdmu/q
-        dzdsig = -dFdsig/q
+        dzdmu = -dFdmu / q
+        dzdsig = -dFdsig / q
         ctx.save_for_backward(dzdmu, dzdsig)
         return samples
 
     @staticmethod
     def backward(ctx, grad_output):
-        dzdmu, dzdsig, = ctx.saved_tensors
+        (
+            dzdmu,
+            dzdsig,
+        ) = ctx.saved_tensors
         return grad_output * dzdmu, grad_output * dzdsig, None, None, None, None
 
 
@@ -72,7 +74,7 @@ class FoldedNormal(dist.Distribution):
         samples = torch.abs(eps * self.scale + self.loc)
 
         return samples
-        
+
     def mean(self):
         """
         Compute the mean of the Folded Normal distribution
@@ -107,14 +109,23 @@ class FoldedNormal(dist.Distribution):
         """
         value = torch.as_tensor(value, dtype=self.loc.dtype, device=self.loc.device)
         # return dist.Normal(loc, scale).cdf(value) - dist.Normal(-loc, scale).cdf(-value)
-        return 0.5 * (torch.erf((value + self.loc)/(self.scale * np.sqrt(2.0)))  + torch.erf((value - self.loc)/(self.scale * np.sqrt(2.0))))
+        return 0.5 * (
+            torch.erf((value + self.loc) / (self.scale * np.sqrt(2.0)))
+            + torch.erf((value - self.loc) / (self.scale * np.sqrt(2.0)))
+        )
 
     def dcdfdmu(self, value):
-        return torch.exp(dist.Normal(-self.loc, self.scale).log_prob(value)) - torch.exp(dist.Normal(self.loc, self.scale).log_prob(value))
+        return torch.exp(
+            dist.Normal(-self.loc, self.scale).log_prob(value)
+        ) - torch.exp(dist.Normal(self.loc, self.scale).log_prob(value))
 
     def dcdfdsigma(self, value):
-        A = (-(value + self.loc)/self.scale) * torch.exp(dist.Normal(-self.loc, self.scale).log_prob(value))
-        B = (-(value - self.loc)/self.scale) * torch.exp(dist.Normal(self.loc, self.scale).log_prob(value))
+        A = (-(value + self.loc) / self.scale) * torch.exp(
+            dist.Normal(-self.loc, self.scale).log_prob(value)
+        )
+        B = (-(value - self.loc) / self.scale) * torch.exp(
+            dist.Normal(self.loc, self.scale).log_prob(value)
+        )
         return A + B
 
     def pdf(self, value):
@@ -122,10 +133,9 @@ class FoldedNormal(dist.Distribution):
 
     def rsample(self, sample_shape=torch.Size()):
         samples = self.sample(sample_shape)
-        F = self.cdf(samples)
+        # F = self.cdf(samples)
         q = self.pdf(samples)
         dFdmu = self.dcdfdmu(samples)
         dFdsigma = self.dcdfdsigma(samples)
         samples.requires_grad_(True)
         return self._irsample(self.loc, self.scale, samples, dFdmu, dFdsigma, q)
-
