@@ -28,5 +28,5 @@ jobs:
         run: hatch run docs:build
 
       - name: Deploy docs
-        run: hatch run docs:deploy
+        run: hatch run docs:gh-deploy
 
