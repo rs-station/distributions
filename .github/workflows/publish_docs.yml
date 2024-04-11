@@ -1,5 +1,4 @@
 name: Publish Documentation
-
 on: workflow_dispatch
 permissions:
   contents: write
@@ -26,8 +25,8 @@ jobs:
           pip install hatch-mkdocs
 
       - name: Build docs
-          hatch run docs:build
+        run: hatch run docs:build
 
       - name: Deploy docs
-          hatch run docs:deploy
+        run: hatch run docs:deploy
 
