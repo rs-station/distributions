@@ -1,4 +1,3 @@
-    nav_file.writelines(nav.build_literate_nav())
 """Generate the code reference pages and navigation."""
 
 from pathlib import Path
