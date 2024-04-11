@@ -161,3 +161,13 @@ docstring-code-format = false
 # This only has an effect when the `docstring-code-format` setting is
 # enabled.
 docstring-code-line-length = "dynamic"
+
+[tool.hatch.env]
+requires = [
+    "hatch-mkdocs",
+    "mkdocs-gen-files",
+]
+
+[tool.hatch.env.collectors.mkdocs.docs]
+path = "mkdocs.yml"
+
