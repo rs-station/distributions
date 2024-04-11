@@ -28,5 +28,5 @@ markdown_extensions:
 nav:
   - Home:
     - Overview: index.html
-  - Api: reference/rs
+  - Api: reference/
 
