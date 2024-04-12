@@ -132,6 +132,16 @@ class FoldedNormal(dist.Distribution):
         return torch.exp(self.log_prob(value))
 
     def rsample(self, sample_shape=torch.Size()):
+        """
+        Generate differentiable random samples from the Folded Normal distribution
+
+        Args:
+            sample_shape (torch.Size, optional): The shape of the samples to generate.
+            Default is an empty shape
+
+        Returns:
+            Tensor: The generated random samples
+        """
         samples = self.sample(sample_shape)
         # F = self.cdf(samples)
         q = self.pdf(samples)
