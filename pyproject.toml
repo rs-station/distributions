@@ -12,6 +12,7 @@ license = "MIT"
 keywords = []
 authors = [
   { name = "Kevin M. Dalton", email = "kmdalton@fas.harvard.edu" },
+  { name = "Minhuan Li", email = "minhuanli@g.harvard.edu" },
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
