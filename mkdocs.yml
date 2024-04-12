@@ -47,5 +47,5 @@ markdown_extensions:
 nav:
   - Home:
     - Overview: index.html
-  - Api: reference/
+  - Api: reference/rs_distributions/
 
