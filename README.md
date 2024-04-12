@@ -1,7 +1,7 @@
 # rs-distributions
 
 [![Documentation](https://github.com/rs-station/distributions/workflows/Documentation/badge.svg)](https://rs-station.github.io/distributions)
-[![Build](https://github.com/rs-station/distributions/workflows/test/badge.svg)](https://github.com/rs-station/distributions/actions/workflows/test.yml)
+[![Build](https://github.com/rs-station/distributions/actions/workflows/test.yml/badge.svg)](https://github.com/rs-station/distributions/actions/workflows/test.yml)
 [![PyPI - Version](https://img.shields.io/pypi/v/rs-distributions.svg)](https://pypi.org/project/rs-distributions)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/rs-distributions.svg)](https://pypi.org/project/rs-distributions)
 
