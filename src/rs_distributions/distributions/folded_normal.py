@@ -133,7 +133,8 @@ class FoldedNormal(dist.Distribution):
 
     def rsample(self, sample_shape=torch.Size()):
         """
-        Generate differentiable random samples from the Folded Normal distribution
+        Generate differentiable random samples from the Folded Normal distribution.
+        Gradients are implemented using implicit reparameterization (https://arxiv.org/abs/1805.08498).
 
         Args:
             sample_shape (torch.Size, optional): The shape of the samples to generate.
