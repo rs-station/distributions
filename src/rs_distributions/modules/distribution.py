@@ -4,66 +4,72 @@ from rs_distributions import distributions as rsd
 from inspect import signature, isclass
 from functools import wraps
 
+class DistributionModuleBase(torch.nn.Module):
+    """ Base class for DistributionModules """
+    def __init__(self, distribution_class, *args, **kwargs):
+        super().__init__()
+        self.distribution_class = distribution_class
+        sig = signature(distribution_class)
+        bargs = sig.bind(*args, **kwargs)
+        bargs.apply_defaults()
+        for arg in distribution_class.arg_constraints:
+            param = bargs.arguments.pop(arg)
+            param = self._constrain_arg_if_needed(arg, param)
+            setattr(self, f"_{arg}", param)
+        self._extra_args = bargs.arguments
 
-def distribution_module_factory(distribution_class):
-    class DistributionModule(torch.nn.Module):
-        __doc__ = distribution_class.__doc__
+    def __repr__(self):
+        rstring = super().__repr__().split("\n")[1:]
+        rstring = [str(self.distribution_class) + " DistributionModule("] + rstring
+        return "\n".join(rstring)
 
-        @wraps(distribution_class.__init__)
-        def __init__(self, *args, **kwargs):
-            super().__init__()
-            sig = signature(distribution_class)
-            bargs = sig.bind(*args, **kwargs)
-            bargs.apply_defaults()
-            for arg in distribution_class.arg_constraints:
-                param = bargs.arguments.pop(arg)
-                param = self._constrain_arg_if_needed(arg, param)
-                setattr(self, f"_{arg}", param)
-            self._extra_args = bargs.arguments
+    def _distribution(self):
+        kwargs = {
+            k: self._realize_parameter(getattr(self, f"_{k}"))
+            for k in self.distribution_class.arg_constraints
+        }
+        kwargs.update(self._extra_args)
+        return self.distribution_class(**kwargs)
 
-        def __repr__(self):
-            rstring = super().__repr__().split("\n")[1:]
-            rstring = [str(distribution_class) + " DistributionModule("] + rstring
-            return "\n".join(rstring)
+    def _constrain_arg_if_needed(self, name, value):
+        if isinstance(value, TransformedParameter):
+            return value
+        cons = self.distribution_class.arg_constraints[name]
+        transform = torch.distributions.constraint_registry.transform_to(cons)
+        return TransformedParameter(value, transform)
 
-        def _distribution(self):
-            kwargs = {
-                k: self._realize_parameter(getattr(self, f"_{k}"))
-                for k in distribution_class.arg_constraints
-            }
-            kwargs.update(self._extra_args)
-            return distribution_class(**kwargs)
+    @staticmethod
+    def _realize_parameter(param):
+        if isinstance(param, TransformedParameter):
+            return param()
+        return param
 
-        @staticmethod
-        def _constrain_arg_if_needed(name, value):
-            if isinstance(value, TransformedParameter):
-                return value
-            cons = distribution_class.arg_constraints[name]
-            transform = torch.distributions.constraint_registry.transform_to(cons)
-            return TransformedParameter(value, transform)
+    def __getattr__(self, name: str):
+        if name in self.distribution_class.arg_constraints or hasattr(
+            self.distribution_class, name
+        ):
+            q = self._distribution()
+            return getattr(q, name)
+        return super().__getattr__(name)
 
-        @staticmethod
-        def _realize_parameter(param):
-            if isinstance(param, TransformedParameter):
-                return param()
-            return param
 
-        def __getattr__(self, name: str):
-            if name in distribution_class.arg_constraints or hasattr(
-                distribution_class, name
-            ):
-                q = self._distribution()
-                return getattr(q, name)
-            return super().__getattr__(name)
+    @classmethod
+    def generate_subclass(cls, distribution_class):
+        class DistributionModule(DistributionModuleBase):
+            __doc__ = distribution_class.__doc__
 
-    return DistributionModule
+            @wraps(distribution_class.__init__)
+            def __init__(self, *args, **kwargs):
+                super().__init__(distribution_class, *args, **kwargs)
+        return DistributionModule
 
 
 distributions_to_transform = {}
-
-
 def extract_distributions(module):
-    """extract distributions from a module into a dict {name: cls}"""
+    """
+    extract all torch.distributions.Distribution subclasses from a module 
+    into a dict {name: cls}
+    """
     d = {}
     for k in module.__all__:
         cls = getattr(module, k)
@@ -79,5 +85,6 @@ distributions_to_transform.update(extract_distributions(rsd))
 
 __all__ = []
 for k, v in distributions_to_transform.items():
-    globals()[k] = distribution_module_factory(v)
+    globals()[k] = DistributionModuleBase.generate_subclass(v)
     __all__.append(k)
+
