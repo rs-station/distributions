@@ -99,7 +99,7 @@ class FoldedNormal(dist.Distribution):
         """
         loc = self.loc
         scale = self.scale
-        return loc**2 + scale**2 - self.mean ** 2
+        return loc**2 + scale**2 - self.mean**2
 
     def cdf(self, value):
         """
