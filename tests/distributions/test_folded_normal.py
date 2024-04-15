@@ -10,8 +10,8 @@ def test_folded_normal_execution(batch_shape, sample_shape):
     loc, scale = params
     q = FoldedNormal(loc, scale)
     z = q.rsample(sample_shape)
-    q.mean()
-    q.variance()
+    q.mean
+    q.variance
     q.cdf(z)
     q.pdf(z)
     q.log_prob(z)

@@ -75,6 +75,7 @@ class FoldedNormal(dist.Distribution):
 
         return samples
 
+    @property
     def mean(self):
         """
         Compute the mean of the Folded Normal distribution
@@ -88,6 +89,7 @@ class FoldedNormal(dist.Distribution):
             -0.5 * (loc / scale) ** 2
         ) + loc * (1 - 2 * dist.Normal(0, 1).cdf(-loc / scale))
 
+    @property
     def variance(self):
         """
         Compute the variance of the Folded Normal distribution
@@ -97,7 +99,7 @@ class FoldedNormal(dist.Distribution):
         """
         loc = self.loc
         scale = self.scale
-        return loc**2 + scale**2 - self.mean() ** 2
+        return loc**2 + scale**2 - self.mean ** 2
 
     def cdf(self, value):
         """
