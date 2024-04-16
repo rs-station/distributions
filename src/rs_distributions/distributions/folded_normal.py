@@ -50,6 +50,8 @@ class FoldedNormal(dist.Distribution):
         Returns:
             Tensor: The log-probabilities of the given values
         """
+        if self._validate_args:
+            self._validate_sample(value)
         loc = self.loc
         scale = self.scale
         log_prob = torch.logaddexp(
@@ -109,6 +111,8 @@ class FoldedNormal(dist.Distribution):
         Returns:
             Tensor: The CDF values at the given values
         """
+        if self._validate_args:
+            self._validate_sample(value)
         value = torch.as_tensor(value, dtype=self.loc.dtype, device=self.loc.device)
         # return dist.Normal(loc, scale).cdf(value) - dist.Normal(-loc, scale).cdf(-value)
         return 0.5 * (
