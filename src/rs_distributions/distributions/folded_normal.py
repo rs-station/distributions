@@ -32,6 +32,7 @@ class FoldedNormal(dist.Distribution):
     """
 
     arg_constraints = {"loc": dist.constraints.real, "scale": dist.constraints.positive}
+    support = torch.distributions.constraints.nonnegative
 
     def __init__(self, loc, scale, validate_args=None):
         self.loc = torch.as_tensor(loc)
