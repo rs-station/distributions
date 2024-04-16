@@ -71,11 +71,11 @@ def extract_distributions(module):
     """
     d = {}
     for k in module.__all__:
-        cls = getattr(module, k)
-        if not isclass(cls):
+        distribution_class = getattr(module, k)
+        if not isclass(distribution_class):
             continue
-        if issubclass(cls, torch.distributions.Distribution):
-            d[k] = cls
+        if issubclass(distribution_class, torch.distributions.Distribution):
+            d[k] = distribution_class
     return d
 
 
