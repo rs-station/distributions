@@ -1,7 +1,7 @@
 import torch
 from rs_distributions.modules import TransformedParameter
 from rs_distributions import distributions as rsd
-from inspect import signature, isclass
+from inspect import signature
 from functools import wraps
 
 class DistributionModule(torch.nn.Module):
@@ -55,35 +55,44 @@ class DistributionModule(torch.nn.Module):
 
     @classmethod
     def generate_subclass(cls, distribution_class):
-        class DistributionModule(DistributionModule):
+        class DistributionModuleSubclass(cls):
             __doc__ = distribution_class.__doc__
+            arg_constraints = distribution_class.arg_constraints
 
             @wraps(distribution_class.__init__)
             def __init__(self, *args, **kwargs):
                 super().__init__(distribution_class, *args, **kwargs)
-        return DistributionModule
+        return DistributionModuleSubclass
 
+    @staticmethod
+    def _extract_distributions(
+        *modules, 
+        base_class=torch.distributions.Distribution
+        ):
+        """
+        extract all torch.distributions.Distribution subclasses from a module(s)
+        into a dict {name: cls}
+        """
+        d = {}
+        for module in modules:
+            for k in module.__all__:
+                distribution_class = getattr(module, k)
+                if not hasattr(distribution_class, 'arg_constraints'):
+                    continue
+                if not hasattr(distribution_class.arg_constraints, 'items'):
+                    continue
+                if issubclass(distribution_class, base_class):
+                    d[k] = distribution_class
+        return d
 
-def extract_distributions(module):
-    """
-    extract all torch.distributions.Distribution subclasses from a module 
-    into a dict {name: cls}
-    """
-    d = {}
-    for k in module.__all__:
-        distribution_class = getattr(module, k)
-        if not isclass(distribution_class):
-            continue
-        if issubclass(distribution_class, torch.distributions.Distribution):
-            d[k] = distribution_class
-    return d
+distributions_to_transform = DistributionModule._extract_distributions(
+    torch.distributions,
+    rsd,
+)
 
-
-distributions_to_transform = extract_distributions(torch.distributions)
-distributions_to_transform.update(extract_distributions(rsd))
-
-__all__ = []
+__all__ = ["DistributionModule"]
 for k, v in distributions_to_transform.items():
     globals()[k] = DistributionModule.generate_subclass(v)
     __all__.append(k)
+
 
