@@ -15,7 +15,7 @@ class DistributionModule(torch.nn.Module):
         for arg in distribution_class.arg_constraints:
             param = bargs.arguments.pop(arg)
             param = self._constrain_arg_if_needed(arg, param)
-            setattr(self, f"_{arg}", param)
+            setattr(self, f"_transformed_{arg}", param)
         self._extra_args = bargs.arguments
 
     def __repr__(self):
@@ -25,7 +25,7 @@ class DistributionModule(torch.nn.Module):
 
     def _distribution(self):
         kwargs = {
-            k: self._realize_parameter(getattr(self, f"_{k}"))
+            k: self._realize_parameter(getattr(self, f"_transformed_{k}"))
             for k in self.distribution_class.arg_constraints
         }
         kwargs.update(self._extra_args)
@@ -35,7 +35,10 @@ class DistributionModule(torch.nn.Module):
         if isinstance(value, TransformedParameter):
             return value
         cons = self.distribution_class.arg_constraints[name]
-        transform = torch.distributions.constraint_registry.transform_to(cons)
+        if cons == torch.distributions.constraints.dependent:
+            transform = torch.distributions.AffineTransform(0., 1.)
+        else:
+            transform = torch.distributions.constraint_registry.transform_to(cons)
         return TransformedParameter(value, transform)
 
     @staticmethod
@@ -89,6 +92,17 @@ distributions_to_transform = DistributionModule._extract_distributions(
     torch.distributions,
     rsd,
 )
+
+# TODO: decide whether to use "ignore" or "include" pattern here
+# Distributions which are currently not supported
+ignore = (
+    "Uniform", #has weird "dependent" constraints
+    "Binomial", # has_rsample == False
+    "MixtureSameFamily", # has_rsample == False
+)
+
+for k in ignore:
+    del(distributions_to_transform[k])
 
 __all__ = ["DistributionModule"]
 for k, v in distributions_to_transform.items():
