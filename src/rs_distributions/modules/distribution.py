@@ -4,8 +4,10 @@ from rs_distributions import distributions as rsd
 from inspect import signature
 from functools import wraps
 
+
 class DistributionModule(torch.nn.Module):
-    """ Base class for learnable distribution classes """
+    """Base class for learnable distribution classes"""
+
     def __init__(self, distribution_class, *args, **kwargs):
         super().__init__()
         self.distribution_class = distribution_class
@@ -36,7 +38,7 @@ class DistributionModule(torch.nn.Module):
             return value
         cons = self.distribution_class.arg_constraints[name]
         if cons == torch.distributions.constraints.dependent:
-            transform = torch.distributions.AffineTransform(0., 1.)
+            transform = torch.distributions.AffineTransform(0.0, 1.0)
         else:
             transform = torch.distributions.constraint_registry.transform_to(cons)
         return TransformedParameter(value, transform)
@@ -55,7 +57,6 @@ class DistributionModule(torch.nn.Module):
             return getattr(q, name)
         return super().__getattr__(name)
 
-
     @classmethod
     def generate_subclass(cls, distribution_class):
         class DistributionModuleSubclass(cls):
@@ -65,13 +66,11 @@ class DistributionModule(torch.nn.Module):
             @wraps(distribution_class.__init__)
             def __init__(self, *args, **kwargs):
                 super().__init__(distribution_class, *args, **kwargs)
+
         return DistributionModuleSubclass
 
     @staticmethod
-    def _extract_distributions(
-        *modules, 
-        base_class=torch.distributions.Distribution
-        ):
+    def _extract_distributions(*modules, base_class=torch.distributions.Distribution):
         """
         extract all torch.distributions.Distribution subclasses from a module(s)
         into a dict {name: cls}
@@ -80,13 +79,14 @@ class DistributionModule(torch.nn.Module):
         for module in modules:
             for k in module.__all__:
                 distribution_class = getattr(module, k)
-                if not hasattr(distribution_class, 'arg_constraints'):
+                if not hasattr(distribution_class, "arg_constraints"):
                     continue
-                if not hasattr(distribution_class.arg_constraints, 'items'):
+                if not hasattr(distribution_class.arg_constraints, "items"):
                     continue
                 if issubclass(distribution_class, base_class):
                     d[k] = distribution_class
         return d
+
 
 distributions_to_transform = DistributionModule._extract_distributions(
     torch.distributions,
@@ -96,17 +96,15 @@ distributions_to_transform = DistributionModule._extract_distributions(
 # TODO: decide whether to use "ignore" or "include" pattern here
 # Distributions which are currently not supported
 ignore = (
-    "Uniform", #has weird "dependent" constraints
-    "Binomial", # has_rsample == False
-    "MixtureSameFamily", # has_rsample == False
+    "Uniform",  # has weird "dependent" constraints
+    "Binomial",  # has_rsample == False
+    "MixtureSameFamily",  # has_rsample == False
 )
 
 for k in ignore:
-    del(distributions_to_transform[k])
+    del distributions_to_transform[k]
 
 __all__ = ["DistributionModule"]
 for k, v in distributions_to_transform.items():
     globals()[k] = DistributionModule.generate_subclass(v)
     __all__.append(k)
-
-
