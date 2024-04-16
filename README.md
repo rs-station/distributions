@@ -11,6 +11,7 @@
 
 - [Installation](#installation)
 - [Distributions](#distributions)
+- [Modules](#modules)
 - [License](#license)
 
 rs-distributions provides statistical tools which are helpful for structural biologists who wish to model their data using variational inference. 
@@ -70,6 +71,35 @@ for i in range(steps):
     opt.step()
 ```
 This example uses the folded normal distribution which is important in X-ray crystallography. 
+
+## Modules
+Working with PyTorch distributions can be a little verbose. 
+So in addition to the `torch.distributions` style implementation, we provide `DistributionModule` classes which enable learnable distributions with automatic bijections in less code. 
+These `DistributionModule` classes are subclasses of `torch.nn.Module`. 
+They automatically instantiate problem parameters as `TransformedParameter` modules following the constraints in the distribution definition.
+In the following example, a `FoldedNormal` `DistributionModule` is instantiated with an initial location and scale and trained to match a target distribution. 
+
+```python
+from rs_distributions import modules as rsm
+import torch
+
+loc_init = 10.
+scale_init = 5.
+
+q = rsm.FoldedNormal(loc_init, scale_init)
+p = torch.distributions.HalfNormal(1.)
+
+opt = torch.optim.Adam(q.parameters())
+
+steps = 10_000
+num_samples = 256
+for i in range(steps):
+    opt.zero_grad()
+    z = q.rsample((num_samples,))
+    kl = (q.log_prob(z) - p.log_prob(z)).mean()
+    kl.backward()
+    opt.step()
+```
 
 ## License
 
