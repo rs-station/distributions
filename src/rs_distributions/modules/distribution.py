@@ -4,8 +4,8 @@ from rs_distributions import distributions as rsd
 from inspect import signature, isclass
 from functools import wraps
 
-class DistributionModuleBase(torch.nn.Module):
-    """ Base class for DistributionModules """
+class DistributionModule(torch.nn.Module):
+    """ Base class for learnable distribution classes """
     def __init__(self, distribution_class, *args, **kwargs):
         super().__init__()
         self.distribution_class = distribution_class
@@ -55,7 +55,7 @@ class DistributionModuleBase(torch.nn.Module):
 
     @classmethod
     def generate_subclass(cls, distribution_class):
-        class DistributionModule(DistributionModuleBase):
+        class DistributionModule(DistributionModule):
             __doc__ = distribution_class.__doc__
 
             @wraps(distribution_class.__init__)
@@ -64,7 +64,6 @@ class DistributionModuleBase(torch.nn.Module):
         return DistributionModule
 
 
-distributions_to_transform = {}
 def extract_distributions(module):
     """
     extract all torch.distributions.Distribution subclasses from a module 
@@ -85,6 +84,6 @@ distributions_to_transform.update(extract_distributions(rsd))
 
 __all__ = []
 for k, v in distributions_to_transform.items():
-    globals()[k] = DistributionModuleBase.generate_subclass(v)
+    globals()[k] = DistributionModule.generate_subclass(v)
     __all__.append(k)
 
