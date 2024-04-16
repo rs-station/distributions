@@ -2,14 +2,17 @@ import torch
 
 
 class TransformedParameter(torch.nn.Module):
+    """
+    A `torch.nn.Module` subclass representing a constrained variabled.
+    """
+
     def __init__(self, value, transform):
         """
-        Arguments
-        ---------
-        value : Tensor
-            The initial value of this learnable parameter
-        transform : torch.distributions.Transform
-            A transform instance which is applied to the underlying, unconstrained value
+        Args:
+            value : Tensor
+                The initial value of this learnable parameter
+            transform : torch.distributions.Transform
+                A transform instance which is applied to the underlying, unconstrained value
         """
         super().__init__()
         value = torch.as_tensor(value)  # support floats

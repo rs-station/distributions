@@ -5,8 +5,42 @@ from inspect import signature
 from functools import wraps
 
 
+# TODO: decide whether to use "ignore" or "include" pattern here
+# Distributions which are currently not supported
+ignored_distributions = (
+    "Uniform",  # has weird "dependent" constraints
+    "Binomial",  # has_rsample == False
+    "MixtureSameFamily",  # has_rsample == False
+)
+
+
 class DistributionModule(torch.nn.Module):
-    """Base class for learnable distribution classes"""
+    """
+    Base class for constructing learnable distributions.
+    This subclass of `torch.nn.Module` acts like a `torch.distributions.Distribution`
+    object with learnable `torch.nn.Parameter` attributes.
+    It works by lazily constructing distributions as needed.
+    Here is a simple example of distribution matching using learnable distributions with reparameterized gradients.
+
+    ```python
+    from rs_distributions import modules as rsm
+    import torch
+
+    q = rsm.FoldedNormal(10., 5.)
+    p = torch.distributions.HalfNormal(1.)
+
+    opt = torch.optim.Adam(q.parameters())
+
+    steps = 10_000
+    num_samples = 256
+    for i in range(steps):
+        opt.zero_grad()
+        z = q.rsample((num_samples,))
+        kl = (q.log_prob(z) - p.log_prob(z)).mean()
+        kl.backward()
+        opt.step()
+    ```
+    """
 
     def __init__(self, distribution_class, *args, **kwargs):
         super().__init__()
@@ -93,15 +127,7 @@ distributions_to_transform = DistributionModule._extract_distributions(
     rsd,
 )
 
-# TODO: decide whether to use "ignore" or "include" pattern here
-# Distributions which are currently not supported
-ignore = (
-    "Uniform",  # has weird "dependent" constraints
-    "Binomial",  # has_rsample == False
-    "MixtureSameFamily",  # has_rsample == False
-)
-
-for k in ignore:
+for k in ignored_distributions:
     del distributions_to_transform[k]
 
 __all__ = ["DistributionModule"]

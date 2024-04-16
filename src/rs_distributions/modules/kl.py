@@ -10,4 +10,3 @@ def kl_divergence(p, q):
     if isinstance(q, rsm.DistributionModule):
         q = q._distribution()
     return torch.distributions.kl.kl_divergence(p, q)
-
