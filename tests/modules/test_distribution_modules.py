@@ -64,8 +64,8 @@ def test_distribution_module(distribution_class_name, serialize):
     if serialize:
         from tempfile import NamedTemporaryFile
 
-        with NamedTemporaryFile() as f:
-            torch.save(q, f.name)
+        with NamedTemporaryFile(delete=False) as f:
+            torch.save(q, f)
             q = torch.load(f.name)
 
     # Not all distributions have these attributes implemented
