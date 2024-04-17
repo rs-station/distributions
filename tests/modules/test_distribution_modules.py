@@ -2,6 +2,7 @@ import pytest
 from rs_distributions import modules as rsm
 import torch
 
+
 distribution_classes = rsm.DistributionModule._extract_distributions(
     rsm, base_class=rsm.DistributionModule
 )
@@ -30,8 +31,16 @@ special_kwargs = {
 
 
 @pytest.mark.parametrize("distribution_class_name", distribution_classes.keys())
-def test_distribution_module(distribution_class_name):
+@pytest.mark.parametrize("serialize", [False, True])
+def test_distribution_module(distribution_class_name, serialize):
     distribution_class = distribution_classes[distribution_class_name]
+
+    assert distribution_class.__doc__ == distribution_class.distribution_class.__doc__
+    assert (
+        distribution_class.arg_constraints
+        == distribution_class.distribution_class.arg_constraints
+    )
+
     shape = (3, 3)
     kwargs = {}
     cons = distribution_class.arg_constraints
@@ -51,6 +60,13 @@ def test_distribution_module(distribution_class_name):
     if distribution_class_name in special_kwargs:
         kwargs.update(special_kwargs[distribution_class_name])
     q = distribution_class(**kwargs)
+
+    if serialize:
+        from tempfile import NamedTemporaryFile
+
+        with NamedTemporaryFile(delete=False) as f:
+            torch.save(q, f)
+            q = torch.load(f.name)
 
     # Not all distributions have these attributes implemented
     try:

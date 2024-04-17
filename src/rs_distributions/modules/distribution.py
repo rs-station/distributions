@@ -2,7 +2,7 @@ import torch
 from rs_distributions.modules import TransformedParameter
 from rs_distributions import distributions as rsd
 from inspect import signature
-from functools import wraps
+from functools import update_wrapper
 
 
 # TODO: decide whether to use "ignore" or "include" pattern here
@@ -42,13 +42,16 @@ class DistributionModule(torch.nn.Module):
     ```
     """
 
-    def __init__(self, distribution_class, *args, **kwargs):
+    distribution_class = torch.distributions.Distribution
+    __doc__ = distribution_class.__doc__
+    arg_constraints = distribution_class.arg_constraints
+
+    def __init__(self, *args, **kwargs):
         super().__init__()
-        self.distribution_class = distribution_class
-        sig = signature(distribution_class)
+        sig = signature(self.distribution_class)
         bargs = sig.bind(*args, **kwargs)
         bargs.apply_defaults()
-        for arg in distribution_class.arg_constraints:
+        for arg in self.distribution_class.arg_constraints:
             param = bargs.arguments.pop(arg)
             param = self._constrain_arg_if_needed(arg, param)
             setattr(self, f"_transformed_{arg}", param)
@@ -91,18 +94,6 @@ class DistributionModule(torch.nn.Module):
             return getattr(q, name)
         return super().__getattr__(name)
 
-    @classmethod
-    def generate_subclass(cls, distribution_class):
-        class DistributionModuleSubclass(cls):
-            __doc__ = distribution_class.__doc__
-            arg_constraints = distribution_class.arg_constraints
-
-            @wraps(distribution_class.__init__)
-            def __init__(self, *args, **kwargs):
-                super().__init__(distribution_class, *args, **kwargs)
-
-        return DistributionModuleSubclass
-
     @staticmethod
     def _extract_distributions(*modules, base_class=torch.distributions.Distribution):
         """
@@ -121,6 +112,16 @@ class DistributionModule(torch.nn.Module):
                     d[k] = distribution_class
         return d
 
+    def __init_subclass__(cls, /, distribution_class, **kwargs):
+        super().__init_subclass__(**kwargs)
+        update_wrapper(
+            cls.__init__,
+            distribution_class.__init__,
+        )
+        cls.distribution_class = distribution_class
+        cls.arg_constraints = distribution_class.arg_constraints
+        cls.__doc__ = distribution_class.__doc__
+
 
 distributions_to_transform = DistributionModule._extract_distributions(
     torch.distributions,
@@ -132,5 +133,6 @@ for k in ignored_distributions:
 
 __all__ = ["DistributionModule"]
 for k, v in distributions_to_transform.items():
-    globals()[k] = DistributionModule.generate_subclass(v)
+    # This pattern is required for pickling to work properly
+    globals()[k] = type(k, (DistributionModule,), {}, distribution_class=v)
     __all__.append(k)
