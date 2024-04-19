@@ -21,6 +21,7 @@ Follow these steps to setup a development environment:
 1. [Install Hatch package manager](https://hatch.pypa.io/latest/install/).
    Example installation with pip:
  ```bash
+ pip --upgrade pip
  pip install hatch
  ```
 
@@ -45,6 +46,7 @@ pip show rs-distributions
 ## Running Tests
 
 We use [pytest](https://docs.pytest.org/en/8.0.x/) for running tests.
+If you are adding a new feature, we ask that you please write a test to go along with your new feature. 
 To run all of the tests, use the following command:
 
 ```bash
