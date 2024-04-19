@@ -92,6 +92,7 @@ Please ensure that your code passes the formatting checks before submitting a pu
 When you are ready to submit a pull request, please ensure that:
 - Your changes are based on the latest main branch.
 - Your code follows the project's code style and formatting guidelines.
+- If you added a new feature, please write a test to go along with it. 
 - Your commit messages are descriptive and explain the purpose of your changes.
 - Your pull request description provides a clear explanation of your changes.
 
