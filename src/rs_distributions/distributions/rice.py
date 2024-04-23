@@ -31,7 +31,7 @@ class Rice(dist.Distribution):
     x ~ MVN([ν, 0], σI)
     y = sqrt(x[0] * x[0] + x[1] * x[1])
     ```
-    The parameters ν and σ represent the location and variance of a bivariate normal.
+    The parameters ν and σ represent the location and standard deviation of an isotropic, bivariate normal.
     If x is drawn from the normal with location [ν, 0i] and covariance,
     ```
     | σ   0 |
@@ -169,6 +169,7 @@ class Rice(dist.Distribution):
     def grad_cdf(self, samples):
         """
         Return the gradient of the CDF
+
         Args:
             samples (Tensor): samples from this distribution
 
