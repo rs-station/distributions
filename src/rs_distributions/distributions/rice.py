@@ -1,24 +1,24 @@
 import numpy as np
 import torch
+import math
 from torch import distributions as dist
 
 
 class RiceIRSample(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, loc, scale, samples, dloc, dscale, dz):
-        grad_loc = -dloc / dz
-        grad_scale = -dscale / dz
-        ctx.save_for_backward(grad_loc, grad_scale)
+    def forward(ctx, nu, sigma, samples, dnu, dsigma, dz):
+        grad_nu = -dnu / dz
+        grad_sigma = -dsigma / dz
+        ctx.save_for_backward(grad_nu, grad_sigma)
         return samples
 
     @staticmethod
     def backward(ctx, grad_output):
         (
-            grad_loc,
-            grad_scale,
+            grad_nu,
+            grad_sigma,
         ) = ctx.saved_tensors
-        return grad_output * grad_loc, grad_output * grad_scale, None, None, None, None
-
+        return grad_output * grad_nu, grad_output * grad_sigma, None, None, None, None
 
 class Rice(dist.Distribution):
     """
@@ -31,7 +31,7 @@ class Rice(dist.Distribution):
     y = sqrt(x[0] * x[0] + x[1] * x[1])
     ```
     The parameters ν and σ represent the location and variance of a bivariate normal. 
-    If x is drawn from the normal with location ν + 0i and covariance,
+    If x is drawn from the normal with location [ν, 0i] and covariance,
     ```
     | σ   0 |
     | 0  σi |
@@ -39,22 +39,22 @@ class Rice(dist.Distribution):
     the distribution of amplitudes, `y = sqrt(x * conjugate(x))`, follows a Rician distribution.
 
     Args:
-        loc (float or Tensor): location parameter of the underlying bivariate normal
-        scale (float or Tensor): scale parameter of the underlying bivariate normal (must be positive)
+        nu (float or Tensor): location parameter of the underlying bivariate normal
+        sigma (float or Tensor): standard deviation of the underlying bivariate normal (must be positive)
         validate_args (bool, optional): Whether to validate the arguments of the distribution.
         Default is None.
     """
 
     arg_constraints = {
-        "loc": dist.constraints.nonnegative , 
-        "scale": dist.constraints.positive,
+        "nu": dist.constraints.nonnegative , 
+        "sigma": dist.constraints.positive,
     }
     support = torch.distributions.constraints.nonnegative
 
-    def __init__(self, loc, scale, validate_args=None):
-        self.loc = torch.as_tensor(loc)
-        self.scale = torch.as_tensor(scale)
-        batch_shape = self.loc.shape
+    def __init__(self, nu, sigma, validate_args=None):
+        self.nu = torch.as_tensor(nu)
+        self.sigma = torch.as_tensor(sigma)
+        batch_shape = self.nu.shape
         super().__init__(batch_shape, validate_args=validate_args)
         self._irsample = RiceIRSample().apply
 
@@ -69,11 +69,11 @@ class Rice(dist.Distribution):
 
     def log_prob(self, value):
         """
-        Compute the log-probability of the given values under the Folded Normal distribution
+        Compute the log-probability of the given values under the Rice distribution
 
         ```
-        Rice(x | loc, scale) = \
-            x * scale**-2 * exp(-0.5 * (x**2 + loc**2) * scale ** -2) * I_0(x * loc * scale **-2)
+        Rice(x | nu, sigma) = \
+            x * sigma**-2 * exp(-0.5 * (x**2 + nu**2) * sigma ** -2) * I_0(x * nu * sigma **-2)
         ```
 
         Args:
@@ -82,25 +82,25 @@ class Rice(dist.Distribution):
         Returns:
             Tensor: The log-probabilities of the given values
         """
-        loc,scale = self.loc,self.scale
+        nu,sigma = self.nu,self.sigma
 
         if self._validate_args:
             self._validate_sample(value)
 
-        log_scale = torch.log(scale)
+        log_sigma = torch.log(sigma)
         x = value
         log_x = torch.log(value)
-        log_loc = torch.log(loc)
-        i0_arg= torch.exp(log_x + log_loc - 2. * log_scale)
+        log_nu = torch.log(nu)
+        i0_arg= torch.exp(log_x + log_nu - 2. * log_sigma)
 
-        log_prob = log_x - 2.*log_scale - 0.5*(x * x + loc * loc) / (scale * scale)
+        log_prob = log_x - 2.*log_sigma - 0.5*(x * x + nu * nu) / (sigma * sigma)
         log_prob += self._log_bessel_i0(i0_arg)
 
         return log_prob
 
     def sample(self, sample_shape=torch.Size()):
         """
-        Generate random samples from the Folded Normal distribution
+        Generate random samples from the Rice distribution
 
         Args:
             sample_shape (torch.Size, optional): The shape of the samples to generate.
@@ -110,9 +110,9 @@ class Rice(dist.Distribution):
             Tensor: The generated random samples
         """
         shape = self._extended_shape(sample_shape)
-        loc, scale = self.loc, self.scale
-        A = scale * torch.randn(shape, dtype=self.loc.dtype, device=self.loc.device) + loc
-        B = scale * torch.randn(shape, dtype=self.loc.dtype, device=self.loc.device) 
+        nu, sigma = self.nu, self.sigma
+        A = sigma * torch.randn(shape, dtype=self.nu.dtype, device=self.nu.device) + nu
+        B = sigma * torch.randn(shape, dtype=self.nu.dtype, device=self.nu.device) 
         z = torch.sqrt(A*A + B*B)
         return z
 
@@ -124,26 +124,23 @@ class Rice(dist.Distribution):
         Returns:
             Tensor: The mean of the distribution.
         """
-
-        raise NotImplementedError()
-        loc = self.loc
-        scale = self.scale
-        return scale * torch.sqrt(torch.tensor(2.0) / torch.pi) * torch.exp(
-            -0.5 * (loc / scale) ** 2
-        ) + loc * (1 - 2 * dist.Normal(0, 1).cdf(-loc / scale))
+        sigma = self.sigma
+        nu = self.nu
+        mean = sigma * math.sqrt(math.pi / 2.) * self._laguerre_half(-0.5*(nu/sigma)**2)
+        return mean
 
     @property
     def variance(self):
         """
-        Compute the variance of the Folded Normal distribution
+        Compute the variance of the Rice distribution
 
         Returns:
             Tensor: The variance of the distribution
         """
-        raise NotImplementedError()
-        loc = self.loc
-        scale = self.scale
-        return loc**2 + scale**2 - self.mean**2
+        sigma = self.sigma
+        nu = self.nu
+        variance = 2*sigma**2. + nu**2. - 0.5*np.pi * sigma**2. * self._laguerre_half(-0.5*(nu/sigma)**2)**2.
+        return variance
 
     def cdf(self, value):
         """
@@ -162,15 +159,15 @@ class Rice(dist.Distribution):
             samples (Tensor): samples from this distribution
 
         Returns: 
-            dloc: gradient with respect to the loc parameter, nu
-            dscale: gradient with respect to the scale parameter, sigma
+            dnu: gradient with respect to the loc parameter, nu
+            dsigma: gradient with respect to the underlying normal's scale parameter, sigma
         """
         z = samples
-        loc, scale = self.loc, self.scale
-        log_z,log_loc,log_scale = torch.log(z),torch.log(loc),torch.log(scale)
-        log_a = log_loc - log_scale
-        log_b = log_z - log_scale
-        ab = torch.exp(log_a + log_b)
+        nu, sigma = self.nu, self.sigma
+        log_z,log_nu,log_sigma = torch.log(z),torch.log(nu),torch.log(sigma)
+        log_a = log_nu - log_sigma
+        log_b = log_z - log_sigma
+        ab = torch.exp(log_a + log_b) #<-- argument of bessel functions
 
         # dQ = b*exp(-0.5*(a*a + b*b)) (shared term)
         # log_dQ = log(b) -0.5*(a*a + b*b)
@@ -182,19 +179,23 @@ class Rice(dist.Distribution):
         log_da = log_dQ + self._log_bessel_i1(ab)
         log_db = log_dQ + self._log_bessel_i0(ab) 
 
-        dz = torch.exp(log_db - log_scale)
-        dloc = -torch.exp(log_da - log_scale)
-        ### TODO: why is this correct? i thought it was the negative of this????
-        dscale = torch.exp(log_da + log_loc - 2*log_scale) - \
-                torch.exp(log_db + log_z - 2*log_scale)
-        return dloc, dscale, dz
+        dz = torch.exp(log_db - log_sigma)
+        dnu = -torch.exp(log_da - log_sigma)
+
+        # Remember the sign of log_a is -1:
+        # dsigma = -da * nu * sigma**-2 - db * nu * sigma**-2
+        #        = -log_a_sign * exp(da + log_a - 2*log_sigma) - db * nu * sigma**-2
+        #        = exp(da + log_a - 2*log_sigma) - db * nu * sigma**-2
+        dsigma = torch.exp(log_da + log_nu - 2*log_sigma) - \
+                torch.exp(log_db + log_z - 2*log_sigma)
+        return dnu, dsigma, dz
 
     def pdf(self, value):
         return torch.exp(self.log_prob(value))
 
     def rsample(self, sample_shape=torch.Size()):
         """
-        Generate differentiable random samples from the Folded Normal distribution.
+        Generate differentiable random samples from the Rice distribution.
         Gradients are implemented using implicit reparameterization (https://arxiv.org/abs/1805.08498).
 
         Args:
@@ -205,7 +206,7 @@ class Rice(dist.Distribution):
             Tensor: The generated random samples
         """
         samples = self.sample(sample_shape)
-        dloc,dscale,dz = self.grad_cdf(samples)
+        dnu,dsigma,dz = self.grad_cdf(samples)
         samples.requires_grad_(True)
-        return self._irsample(self.loc, self.scale, samples, dloc, dscale, dz)
+        return self._irsample(self.nu, self.sigma, samples, dnu, dsigma, dz)
 
