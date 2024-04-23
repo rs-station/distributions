@@ -54,6 +54,7 @@ jobs:
 
     - name: Install Hatch
       run: |
+        pip install --upgrade pip
         pip install --upgrade hatch
         pip install hatch-mkdocs #This is a workaround  for https://github.com/pypa/hatch/issues/1379
 
