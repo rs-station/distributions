@@ -53,8 +53,7 @@ class Rice(dist.Distribution):
     support = torch.distributions.constraints.nonnegative
 
     def __init__(self, nu, sigma, validate_args=None):
-        self.nu = torch.as_tensor(nu)
-        self.sigma = torch.as_tensor(sigma)
+        self.nu,self.sigma = torch.distributions.utils.broadcast_all(nu, sigma)
         batch_shape = self.nu.shape
         super().__init__(batch_shape, validate_args=validate_args)
         self._irsample = RiceIRSample().apply
@@ -114,10 +113,13 @@ class Rice(dist.Distribution):
         """
         shape = self._extended_shape(sample_shape)
         nu, sigma = self.nu, self.sigma
-        A = sigma * torch.randn(shape, dtype=self.nu.dtype, device=self.nu.device) + nu
-        B = sigma * torch.randn(shape, dtype=self.nu.dtype, device=self.nu.device)
-        z = torch.sqrt(A * A + B * B)
-        return z
+        nu = nu.expand(shape)
+        sigma = sigma.expand(shape)
+        with torch.no_grad():
+            A = torch.normal(nu, sigma)
+            B = torch.normal(torch.zeros_like(nu), sigma)
+            z = torch.sqrt(A * A + B * B)
+            return z
 
     @property
     def mean(self):
