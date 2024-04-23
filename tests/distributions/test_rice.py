@@ -12,7 +12,7 @@ def test_folded_normal_execution(batch_shape, sample_shape):
     z = q.rsample(sample_shape)
     q.mean
     q.variance
-    #q.cdf(z) #<-- no cdf implementation
+    # q.cdf(z) #<-- no cdf implementation
     q.pdf(z)
     q.log_prob(z)
     torch.autograd.grad(z.sum(), params)
