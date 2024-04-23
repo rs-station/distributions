@@ -53,7 +53,7 @@ class Rice(dist.Distribution):
     support = torch.distributions.constraints.nonnegative
 
     def __init__(self, nu, sigma, validate_args=None):
-        self.nu,self.sigma = torch.distributions.utils.broadcast_all(nu, sigma)
+        self.nu, self.sigma = torch.distributions.utils.broadcast_all(nu, sigma)
         batch_shape = self.nu.shape
         super().__init__(batch_shape, validate_args=validate_args)
         self._irsample = RiceIRSample().apply

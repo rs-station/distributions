@@ -35,7 +35,7 @@ class FoldedNormal(dist.Distribution):
     support = torch.distributions.constraints.nonnegative
 
     def __init__(self, loc, scale, validate_args=None):
-        self.loc,self.scale = torch.distributions.utils.broadcast_all(loc, scale)
+        self.loc, self.scale = torch.distributions.utils.broadcast_all(loc, scale)
         batch_shape = self.loc.shape
         super().__init__(batch_shape, validate_args=validate_args)
         self._irsample = NormalIRSample().apply

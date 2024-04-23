@@ -10,7 +10,7 @@ def test_folded_normal_execution(test_float_broadcasting, batch_shape, sample_sh
     params = torch.ones((2, batch_shape), requires_grad=True)
     loc, scale = params
     if test_float_broadcasting:
-        loc = 1.
+        loc = 1.0
     q = FoldedNormal(loc, scale)
     z = q.rsample(sample_shape)
     q.mean
