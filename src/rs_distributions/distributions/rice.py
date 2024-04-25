@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 import math
 from torch import distributions as dist
@@ -75,10 +74,11 @@ class Rice(dist.Distribution):
             self._validate_sample(value)
         nu, sigma = self.nu, self.sigma
         x = value
-        log_prob = \
-            torch.log(x) - 2.*torch.log(sigma) - \
-            0.5 * torch.square((x-nu)/sigma) + torch.log(
-            torch.special.i0e(nu * x / (sigma*sigma))
+        log_prob = (
+            torch.log(x)
+            - 2.0 * torch.log(sigma)
+            - 0.5 * torch.square((x - nu) / sigma)
+            + torch.log(torch.special.i0e(nu * x / (sigma * sigma)))
         )
         return log_prob
 
@@ -115,7 +115,7 @@ class Rice(dist.Distribution):
         nu = self.nu
 
         x = -0.5 * torch.square(nu / sigma)
-        L = (1. - x) * torch.special.i0e(-0.5*x) - x * torch.special.i1e(-0.5 * x)
+        L = (1.0 - x) * torch.special.i0e(-0.5 * x) - x * torch.special.i1e(-0.5 * x)
         mean = sigma * math.sqrt(math.pi / 2.0) * L
         return mean
 
@@ -127,10 +127,8 @@ class Rice(dist.Distribution):
         Returns:
             Tensor: The variance of the distribution
         """
-        nu,sigma = self.nu,self.sigma
-        n2 = nu * nu
-        sigma = self.sigma
-        return 2*sigma*sigma + nu*nu - torch.square(self.mean)
+        nu, sigma = self.nu, self.sigma
+        return 2 * sigma * sigma + nu * nu - torch.square(self.mean)
 
     def cdf(self, value):
         """
@@ -156,8 +154,8 @@ class Rice(dist.Distribution):
         z = samples
         nu, sigma = self.nu, self.sigma
         ab = z * nu / (sigma * sigma)
-        dnu = torch.special.i1e(ab) / torch.special.i0e(ab) #== i1(ab)/i0(ab)
-        dsigma = (z - nu * dnu)/sigma
+        dnu = torch.special.i1e(ab) / torch.special.i0e(ab)  # == i1(ab)/i0(ab)
+        dsigma = (z - nu * dnu) / sigma
         return dnu, dsigma
 
     def pdf(self, value):

@@ -22,7 +22,10 @@ def test_rice_execution(test_float_broadcasting, batch_shape, sample_shape):
     q.log_prob(z)
     torch.autograd.grad(z.sum(), params)
 
-def test_rice_against_scipy(dtype='float32', snr_cutoff=10., log_min=-12, log_max=2, rtol=1e-5):
+
+def test_rice_against_scipy(
+    dtype="float32", snr_cutoff=10.0, log_min=-12, log_max=2, rtol=1e-5
+):
     """
     Test the following attributes of Rice against scipy.stats.rice
      - mean
@@ -36,13 +39,13 @@ def test_rice_against_scipy(dtype='float32', snr_cutoff=10., log_min=-12, log_ma
     """
     log_min, log_max = -12, 2
     nu = sigma = np.logspace(log_min, log_max, log_max - log_min + 1, dtype=dtype)
-    nu,sigma = np.meshgrid(nu, sigma)
-    nu,sigma = nu.flatten(),sigma.flatten()
+    nu, sigma = np.meshgrid(nu, sigma)
+    nu, sigma = nu.flatten(), sigma.flatten()
     idx = nu / sigma < snr_cutoff
-    nu,sigma = nu[idx],sigma[idx]
+    nu, sigma = nu[idx], sigma[idx]
 
     q = Rice(
-        torch.as_tensor(nu), 
+        torch.as_tensor(nu),
         torch.as_tensor(sigma),
     )
 
@@ -55,16 +58,15 @@ def test_rice_against_scipy(dtype='float32', snr_cutoff=10., log_min=-12, log_ma
     assert np.allclose(stddev, result, rtol=rtol)
 
     z = np.linspace(
-        np.maximum(mean - 3.*stddev, 0.),
-        mean + 3.*stddev,
+        np.maximum(mean - 3.0 * stddev, 0.0),
+        mean + 3.0 * stddev,
         10,
     )
 
-    log_prob = rice.logpdf(z, nu/sigma, scale=sigma)
+    log_prob = rice.logpdf(z, nu / sigma, scale=sigma)
     result = q.log_prob(torch.as_tensor(z)).detach().numpy()
     assert np.allclose(log_prob, result, rtol=rtol)
-        
-    pdf = rice.pdf(z, nu/sigma, scale=sigma)
+
+    pdf = rice.pdf(z, nu / sigma, scale=sigma)
     result = q.pdf(torch.as_tensor(z)).detach().numpy()
     assert np.allclose(pdf, result, rtol=rtol)
-
