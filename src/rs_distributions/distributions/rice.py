@@ -56,17 +56,6 @@ class Rice(dist.Distribution):
         super().__init__(batch_shape, validate_args=validate_args)
         self._irsample = RiceIRSample().apply
 
-    def _log_bessel_i0(self, x):
-        return torch.log(torch.special.i0e(x)) + torch.abs(x)
-
-    def _log_bessel_i1(self, x):
-        return torch.log(torch.special.i1e(x)) + torch.abs(x)
-
-    def _laguerre_half(self, x):
-        return (1.0 - x) * torch.exp(
-            x / 2.0 + self._log_bessel_i0(-0.5 * x)
-        ) - x * torch.exp(x / 2.0 + self._log_bessel_i1(-0.5 * x))
-
     def log_prob(self, value):
         """
         Compute the log-probability of the given values under the Rice distribution
@@ -82,20 +71,15 @@ class Rice(dist.Distribution):
         Returns:
             Tensor: The log-probabilities of the given values
         """
-        nu, sigma = self.nu, self.sigma
-
         if self._validate_args:
             self._validate_sample(value)
-
-        log_sigma = torch.log(sigma)
+        nu, sigma = self.nu, self.sigma
         x = value
-        log_x = torch.log(value)
-        log_nu = torch.log(nu)
-        i0_arg = torch.exp(log_x + log_nu - 2.0 * log_sigma)
-
-        log_prob = log_x - 2.0 * log_sigma - 0.5 * (x * x + nu * nu) / (sigma * sigma)
-        log_prob += self._log_bessel_i0(i0_arg)
-
+        log_prob = \
+            torch.log(x) - 2.*torch.log(sigma) - \
+            0.5 * torch.square((x-nu)/sigma) + torch.log(
+            torch.special.i0e(nu * x / (sigma*sigma))
+        )
         return log_prob
 
     def sample(self, sample_shape=torch.Size()):
@@ -129,11 +113,10 @@ class Rice(dist.Distribution):
         """
         sigma = self.sigma
         nu = self.nu
-        mean = (
-            sigma
-            * math.sqrt(math.pi / 2.0)
-            * self._laguerre_half(-0.5 * (nu / sigma) ** 2)
-        )
+
+        x = -0.5 * torch.square(nu / sigma)
+        L = (1. - x) * torch.special.i0e(-0.5*x) - x * torch.special.i1e(-0.5 * x)
+        mean = sigma * math.sqrt(math.pi / 2.0) * L
         return mean
 
     @property
@@ -144,17 +127,10 @@ class Rice(dist.Distribution):
         Returns:
             Tensor: The variance of the distribution
         """
+        nu,sigma = self.nu,self.sigma
+        n2 = nu * nu
         sigma = self.sigma
-        nu = self.nu
-        variance = (
-            2 * sigma**2.0
-            + nu**2.0
-            - 0.5
-            * np.pi
-            * sigma**2.0
-            * self._laguerre_half(-0.5 * (nu / sigma) ** 2) ** 2.0
-        )
-        return variance
+        return 2*sigma*sigma + nu*nu - torch.square(self.mean)
 
     def cdf(self, value):
         """
@@ -179,19 +155,9 @@ class Rice(dist.Distribution):
         """
         z = samples
         nu, sigma = self.nu, self.sigma
-
-        log_z, log_nu, log_sigma = torch.log(z), torch.log(nu), torch.log(sigma)
-        log_a = log_nu - log_sigma
-        log_b = log_z - log_sigma
-        ab = torch.exp(log_a + log_b)  # <-- argument of bessel functions
-        log_i0 = self._log_bessel_i0(ab)
-        log_i1 = self._log_bessel_i1(ab)
-
-        dnu = torch.exp(log_i1 - log_i0)
-        dsigma = -(
-            torch.exp(log_nu - log_sigma + log_i1 - log_i0)
-            - torch.exp(log_z - log_sigma)
-        )
+        ab = z * nu / (sigma * sigma)
+        dnu = torch.special.i1e(ab) / torch.special.i0e(ab) #== i1(ab)/i0(ab)
+        dsigma = (z - nu * dnu)/sigma
         return dnu, dsigma
 
     def pdf(self, value):

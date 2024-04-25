@@ -43,6 +43,7 @@ path = "src/rs_distributions/__about__.py"
 dependencies = [
   "coverage[toml]>=6.5",
   "pytest",
+  "scipy",
 ]
 [tool.hatch.envs.default.scripts]
 test = "pytest {args:tests}"
