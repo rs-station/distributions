@@ -1,13 +1,7 @@
 import pytest
 from rs_distributions.transforms.fill_scale_tril import FillScaleTriL
 import torch
-from torch.distributions.utils import vec_to_tril_matrix, tril_matrix_to_vec
 from torch.distributions.constraints import lower_cholesky
-from torch.distributions.transforms import (
-    ComposeTransform,
-    ExpTransform,
-    SoftplusTransform,
-)
 
 
 @pytest.mark.parametrize("batch_shape, d", [((2, 3), 6), ((1, 4, 5), 10)])
