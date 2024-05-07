@@ -1,5 +1,7 @@
 import pytest
-from rs_distributions.transforms.fill_scale_tril import FillScaleTriL
+from rs_distributions.transforms.fill_scale_tril import (
+    FillScaleTriL,
+)
 import torch
 from torch.distributions.constraints import lower_cholesky
 
@@ -9,7 +11,7 @@ def test_forward_transform(batch_shape, d):
     transform = FillScaleTriL()
     input_shape = batch_shape + (d,)
     input_vector = torch.randn(input_shape)
-    transformed_vector = transform._call(input_vector)
+    transformed_vector = transform(input_vector)
 
     n = int((-1 + torch.sqrt(torch.tensor(1 + 8 * d))) / 2)
     expected_output_shape = batch_shape + (n, n)
@@ -27,10 +29,8 @@ def test_forward_equals_inverse(batch_shape, d):
     transform = FillScaleTriL()
     input_shape = batch_shape + (d,)
     input_vector = torch.randn(input_shape)
-    L = transform._call(input_vector)
-    invL = transform._inverse(L)
-
-    n = int((-1 + torch.sqrt(torch.tensor(1 + 8 * d))) / 2)
+    L = transform(input_vector)
+    invL = transform.inv(L)
 
     assert torch.allclose(
         input_vector, invL, atol=1e-4
