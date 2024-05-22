@@ -115,7 +115,7 @@ class FillScaleTriL(ComposeTransform):
     @staticmethod
     def params_size(event_size):
         """
-        Returns the number of parameters required to create lower triangular matrix, which is given by n*(n+1)//2
+        Returns the number of parameters required to create an n-by-n lower triangular matrix, which is given by n*(n+1)//2
 
         Args: 
             event_size (int): size of event
