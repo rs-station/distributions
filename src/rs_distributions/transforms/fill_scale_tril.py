@@ -99,7 +99,7 @@ class FillScaleTriL(ComposeTransform):
             diag_transform = torch.distributions.ComposeTransform(
                 (
                  SoftplusTransform(),
-                 AffineTransform(1e-5, 1.),
+                 AffineTransform(1e-5, 1.0),
              )
             )
         super().__init__([FillTriL(), DiagTransform(diag_transform=diag_transform)])
