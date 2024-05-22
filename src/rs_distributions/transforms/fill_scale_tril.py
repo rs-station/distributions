@@ -95,7 +95,6 @@ class FillScaleTriL(ComposeTransform):
     """
 
     def __init__(self, diag_transform=None):
-        
         if diag_transform is None:
             diag_transform = torch.distributions.ComposeTransform(
                 (
@@ -120,7 +119,7 @@ class FillScaleTriL(ComposeTransform):
         """
         Returns the number of parameters required to create an n-by-n lower triangular matrix, which is given by n*(n+1)//2
 
-        Args: 
+        Args:
             event_size (int): size of event
         Returns:
             int: Number of parameters needed
