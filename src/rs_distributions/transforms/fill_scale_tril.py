@@ -96,10 +96,12 @@ class FillScaleTriL(ComposeTransform):
 
     def __init__(self, diag_transform=None):
         if diag_transform is None:
-            diag_transform = torch.distributions.ComposeTransform((
+            diag_transform = torch.distributions.ComposeTransform(
+                (
                  SoftplusTransform(),
                  AffineTransform(1e-5, 1.),
-             ))
+             )
+            )
         super().__init__([FillTriL(), DiagTransform(diag_transform=diag_transform)])
         self.diag_transform = diag_transform
 
