@@ -100,7 +100,7 @@ class FillScaleTriL(ComposeTransform):
                 (
                  SoftplusTransform(),
                  AffineTransform(1e-5, 1.0),
-             )
+                )
             )
         super().__init__([FillTriL(), DiagTransform(diag_transform=diag_transform)])
         self.diag_transform = diag_transform
@@ -121,7 +121,6 @@ class FillScaleTriL(ComposeTransform):
 
         Args: 
             event_size (int): size of event
-
         Returns:
             int: Number of parameters needed
 
