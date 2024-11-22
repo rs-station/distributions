@@ -53,6 +53,7 @@ cov-report = [
   "coverage report",
 ]
 cov = [
+  "pip list",
   "test-cov",
   "cov-report",
 ]
