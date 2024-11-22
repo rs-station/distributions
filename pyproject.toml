@@ -28,7 +28,7 @@ classifiers = [
 ]
 dependencies = [
     "torch",
-    "numpy",
+    "numpy<2",
 ]
 
 [project.urls]
