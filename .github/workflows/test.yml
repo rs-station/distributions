@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, numpy1py39]
   pull_request:
     branches: [main]
 
