@@ -45,8 +45,8 @@ def test_rice_against_scipy(
     nu, sigma = nu[idx], sigma[idx]
 
     q = Rice(
-        torch.as_tensor(nu),
-        torch.as_tensor(sigma),
+        torch.as_tensor(nu, dtype=torch.float32),
+        torch.as_tensor(sigma, dtype=torch.float32),
     )
 
     mean = rice.mean(nu / sigma, scale=sigma).astype(dtype)
