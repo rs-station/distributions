@@ -115,9 +115,7 @@ class FoldedNormal(dist.Distribution):
             var[large] = scale[large] ** 2
 
         if small.any():
-            var[small] = scale[small] ** 2 + (loc[small] - mean[small]) * (
-                loc[small] + mean[small]
-            )
+            var[small] = loc[small] ** 2 + scale[small] ** 2 - mean[small] ** 2
 
         return var
 
