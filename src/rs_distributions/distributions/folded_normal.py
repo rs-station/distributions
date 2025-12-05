@@ -29,16 +29,18 @@ class FoldedNormal(dist.Distribution):
         scale (float or Tensor): scale parameter of the distribution (must be positive)
         validate_args (bool, optional): Whether to validate the arguments of the distribution.
         Default is None.
+        var_thresh (int): Threshold for switching between the Folded Normal variance formula and the Normal variance
     """
 
     arg_constraints = {"loc": dist.constraints.real, "scale": dist.constraints.positive}
     support = torch.distributions.constraints.nonnegative
 
-    def __init__(self, loc, scale, validate_args=None):
+    def __init__(self, loc, scale, var_thresh: int = 5, validate_args=None):
         self.loc, self.scale = torch.distributions.utils.broadcast_all(loc, scale)
         batch_shape = self.loc.shape
         super().__init__(batch_shape, validate_args=validate_args)
         self._irsample = NormalIRSample().apply
+        self.var_thresh = var_thresh
 
     def log_prob(self, value):
         """
@@ -101,6 +103,22 @@ class FoldedNormal(dist.Distribution):
         """
         loc = self.loc
         scale = self.scale
+        mean = self.mean
+
+        a = loc / scale
+        var = torch.empty_like(loc)
+        large = a > self.var_thresh
+        small = ~large
+
+        # use Normal variance when loc/scale > var_thresh
+        if large.any():
+            var[large] = scale[large] ** 2
+
+        if small.any():
+            var[small] = scale[small] ** 2 + (loc[small] - mean[small]) * (
+                loc[small] + mean[small]
+            )
+
         return loc**2 + scale**2 - self.mean**2
 
     def cdf(self, value):
