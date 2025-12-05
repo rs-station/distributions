@@ -66,7 +66,7 @@ def test_distribution_module(distribution_class_name, serialize):
 
         with NamedTemporaryFile(delete=False) as f:
             torch.save(q, f)
-            q = torch.load(f.name)
+            q = torch.load(f.name, weights_only=False)
 
     # Not all distributions have these attributes implemented
     try:

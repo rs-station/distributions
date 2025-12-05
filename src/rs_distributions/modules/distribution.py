@@ -129,7 +129,7 @@ distributions_to_transform = DistributionModule._extract_distributions(
 )
 
 for k in ignored_distributions:
-    del distributions_to_transform[k]
+    distributions_to_transform.pop(k, None)
 
 __all__ = ["DistributionModule"]
 for k, v in distributions_to_transform.items():

@@ -21,9 +21,9 @@ def test_forward_transform(batch_shape, d):
     cholesky_constraint_check = lower_cholesky.check(transformed_vector)
 
     assert isinstance(transformed_vector, torch.Tensor), "Output is not a torch.Tensor"
-    assert (
-        transformed_vector.shape == expected_output_shape
-    ), f"Expected shape {expected_output_shape}, got {transformed_vector.shape}"
+    assert transformed_vector.shape == expected_output_shape, (
+        f"Expected shape {expected_output_shape}, got {transformed_vector.shape}"
+    )
     assert cholesky_constraint_check.all()
 
 
@@ -35,9 +35,9 @@ def test_forward_equals_inverse(batch_shape, d):
     L = transform(input_vector)
     invL = transform.inv(L)
 
-    assert torch.allclose(
-        input_vector, invL, atol=1e-4
-    ), "Original input and the result of applying inverse transformation are not close enough"
+    assert torch.allclose(input_vector, invL, atol=1e-4), (
+        "Original input and the result of applying inverse transformation are not close enough"
+    )
 
 
 @pytest.mark.parametrize(
